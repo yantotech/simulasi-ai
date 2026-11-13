@@ -1,0 +1,906 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Simulasi AI: Klasifikasi Buah &amp; Cara Kerja CNN</title>
+<style>
+  :root{
+    --bg:#f6f7f9; --card:#fff; --ink:#1f2933; --muted:#616e7c; --line:#e4e7eb;
+    --apel:#d64545; --jeruk:#e8890c; --accent:#2563eb; --ok:#16a34a; --bad:#dc2626;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--ink);font-size:15px;line-height:1.5}
+  header{padding:18px 24px 0;max-width:1240px;margin:0 auto}
+  h1{font-size:22px;margin:0 0 4px}
+  header p{margin:0;color:var(--muted)}
+  .tabs{display:flex;gap:8px;max-width:1240px;margin:14px auto 0;padding:0 24px}
+  .tab{border:1px solid var(--line);background:#fff;padding:10px 18px;border-radius:10px 10px 0 0;cursor:pointer;font-size:15px;font-weight:600;color:var(--muted)}
+  .tab.active{color:var(--ink);box-shadow:0 -3px 0 var(--accent) inset}
+  main{max-width:1240px;margin:0 auto;padding:0 24px 30px}
+  .panel{display:none;background:var(--card);border:1px solid var(--line);border-radius:0 12px 12px 12px;padding:18px}
+  .panel.active{display:block}
+  .row{display:flex;gap:18px;flex-wrap:wrap}
+  .col-plot{flex:1 1 600px;min-width:320px}
+  .col-side{flex:0 1 400px;min-width:300px;display:flex;flex-direction:column;gap:12px}
+  .box{border:1px solid var(--line);border-radius:10px;padding:12px}
+  .box h3{margin:0 0 8px;font-size:13px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
+  .btns{display:flex;flex-wrap:wrap;gap:6px}
+  button{font:inherit;border:1px solid var(--line);background:#fff;border-radius:8px;padding:6px 11px;cursor:pointer;color:var(--ink)}
+  button:hover{border-color:#9aa5b1}
+  button.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+  button.primary{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
+  button:disabled{opacity:.45;cursor:not-allowed}
+  .explain{background:#f0f5ff;border:1px solid #c7d7fe;border-radius:10px;padding:12px}
+  .explain b{color:#1e3a8a}
+  .stats{display:flex;gap:10px}
+  .stat{flex:1;border:1px solid var(--line);border-radius:10px;padding:8px 10px;text-align:center}
+  .stat .v{font-size:24px;font-weight:700}
+  .stat .l{font-size:12px;color:var(--muted)}
+  svg{width:100%;height:auto;display:block;background:#fff;border:1px solid var(--line);border-radius:10px;touch-action:none}
+  .legend{display:flex;flex-wrap:wrap;gap:14px;font-size:13px;color:var(--muted);margin-top:8px}
+  .sw{display:inline-block;width:14px;height:14px;border-radius:3px;vertical-align:-2px;margin-right:4px}
+  .hint{font-size:13px;color:var(--muted)}
+  .param{display:flex;align-items:center;gap:8px;margin-top:10px;font-size:14px}
+  .param .pl{width:118px}
+  .param input{flex:1}
+  .param .pv{width:44px;text-align:right;font-weight:700;font-variant-numeric:tabular-nums}
+  .pdesc{font-size:12px;color:var(--muted);margin:2px 0 0 126px}
+  .formula{font-family:"Cambria Math","Times New Roman",serif;font-size:19px;text-align:center;padding:10px;background:#fafbfc;border:1px solid var(--line);border-radius:8px;margin:6px 0}
+  .formula.small{font-size:16px}
+  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px;margin-top:16px}
+  .card{border:1px solid var(--line);border-radius:10px;padding:12px 14px;background:#fff}
+  .card h4{margin:0 0 6px;font-size:15px}
+  .card p{margin:4px 0;font-size:14px}
+  .card ul{margin:4px 0;padding-left:18px;font-size:14px}
+  .tag{display:inline-block;font-size:11px;font-weight:700;padding:1px 7px;border-radius:999px;margin-right:6px;vertical-align:1px}
+  .t-in{background:#e0f2fe;color:#075985}.t-learn{background:#dcfce7;color:#166534}.t-human{background:#fef3c7;color:#92400e}.t-out{background:#ede9fe;color:#5b21b6}
+  .val{font-family:ui-monospace,Menlo,Consolas,monospace;background:#f3f4f6;border-radius:4px;padding:0 4px}
+  .scen{display:flex;flex-direction:column;gap:6px}
+  .scen button{text-align:left;font-size:13px}
+  .scen button b{display:inline-block;width:18px}
+  /* DL */
+  .pipeline{display:flex;align-items:stretch;gap:6px;flex-wrap:wrap;justify-content:center}
+  .stage{border:2px solid var(--line);border-radius:12px;padding:10px;background:#fff;display:flex;flex-direction:column;align-items:center;gap:6px;cursor:pointer}
+  .stage.sel{border-color:var(--accent);background:#f8faff}
+  .stage h4{margin:0;font-size:15px}
+  .stage .sub{font-size:12px;color:var(--muted);max-width:190px;text-align:center}
+  .arrow{align-self:center;font-size:22px;color:#9aa5b1}
+  .grid{display:grid;gap:1px;background:#d9dde2;border:1px solid #d9dde2;user-select:none}
+  .grid div{background:#fff;display:flex;align-items:center;justify-content:center;font-size:10px;color:#9aa5b1}
+  #inGrid div{cursor:crosshair;font-size:12px}
+  .grid div.hl{outline:3px solid var(--accent);outline-offset:-3px;position:relative;z-index:2}
+  .grid div.cur{outline:3px solid #f59e0b;outline-offset:-3px;position:relative;z-index:2}
+  .fmaps{display:grid;grid-template-columns:repeat(2,auto);gap:8px}
+  .fmap{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:12px;font-weight:600}
+  .bars{display:flex;flex-direction:column;gap:8px;width:210px}
+  .bar{display:flex;align-items:center;gap:8px;font-size:13px}
+  .bar .name{width:62px}
+  .bar .track{flex:1;height:16px;background:#eef1f4;border-radius:8px;overflow:hidden}
+  .bar .fill{display:block;height:100%;background:#9aa5b1;border-radius:8px;transition:width .3s}
+  .bar.top .fill{background:var(--accent)}
+  .bar .pct{width:40px;text-align:right;font-variant-numeric:tabular-nums}
+  .verdict{font-size:18px;font-weight:700;text-align:center}
+  .lab{display:grid;grid-template-columns:240px 1fr;gap:16px;margin-top:16px}
+  .klist{display:flex;flex-direction:column;gap:6px}
+  .klist button{text-align:left;padding:8px 10px}
+  .klist button small{display:block;color:inherit;opacity:.75;font-size:12px}
+  .labmain{display:flex;flex-wrap:wrap;gap:18px;align-items:flex-start}
+  .mat{display:grid;grid-template-columns:repeat(3,40px);gap:3px}
+  .mat div{height:40px;display:flex;align-items:center;justify-content:center;border-radius:6px;font-weight:700;font-size:14px;font-variant-numeric:tabular-nums}
+  .op{font-size:26px;font-weight:700;color:#9aa5b1;align-self:center}
+  .calcrow{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+  .calcbox{display:flex;flex-direction:column;align-items:center;gap:4px;font-size:12px;color:var(--muted);font-weight:600}
+  .result{font-size:15px;background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;padding:8px 12px;margin-top:8px}
+  .warn{background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:10px 12px;font-size:14px}
+
+  .ctrlbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+  .chips{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0}
+  .chip{padding:4px 11px;border-radius:999px;border:1px solid var(--line);font-size:13px;color:var(--muted);background:#fff}
+  .chip.done{background:#dcfce7;color:#166534;border-color:#bbf7d0}
+  .chip.cur{background:var(--accent);color:#fff;border-color:var(--accent);font-weight:600}
+  .narr{font-size:15px;min-height:72px}
+  .stage.active{border-color:var(--accent);box-shadow:0 0 0 4px #dbeafe}
+  .row2{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;margin-top:10px;align-items:stretch}
+  .strip{display:grid;grid-template-columns:repeat(64,8px);gap:1px;background:#d9dde2;border:1px solid #d9dde2}
+  .strip div{height:16px;background:#f3f4f6}
+  .strip div.cur{outline:2px solid #f59e0b;outline-offset:-2px}
+  .striplbl{display:grid;grid-template-columns:repeat(4,1fr);font-size:10px;color:var(--muted);text-align:center;width:577px}
+  .cmprow{display:flex;align-items:center;gap:8px;padding:3px 6px;border-radius:8px}
+  .cmprow .nm{width:64px;font-size:13px;font-weight:600}
+  .cmprow .sc{width:120px;font-size:13px;font-variant-numeric:tabular-nums}
+  .cmprow.cur{background:#fff7ed;outline:2px solid #fed7aa}
+  .cmprow .strip div{height:12px}
+  .curk{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted)}
+  .curk .mat{grid-template-columns:repeat(3,22px)}
+  .curk .mat div{height:22px;font-size:11px}
+  .speed button{padding:4px 9px;font-size:13px}
+  footer{max-width:1240px;margin:0 auto;padding:0 24px 24px;color:var(--muted);font-size:12px}
+  @media (max-width:800px){.lab{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header>
+  <h1>Simulasi AI: dari Data Buah sampai Cara Kerja CNN</h1>
+  <p>Simulasi interaktif untuk kelas Pengantar Kecerdasan Buatan. Tanpa coding, cukup klik.</p>
+</header>
+
+<div class="tabs">
+  <button class="tab active" data-tab="ml">Demo ML: SVM untuk Klasifikasi Buah</button>
+  <button class="tab" data-tab="dl">Demo DL: Cara Kerja CNN</button>
+</div>
+
+<main>
+<!-- ======================================================= ML ======================================================= -->
+<section class="panel active" id="panel-ml">
+  <div class="row">
+    <div class="col-plot">
+      <svg id="plot" viewBox="0 0 640 460"></svg>
+      <div class="legend">
+        <span>🍎🍏 = apel (y = +1)</span><span>🍊 = jeruk (y = −1)</span>
+        <span><span class="sw" style="background:#f3b4b4"></span>wilayah apel</span>
+        <span><span class="sw" style="background:#fbd19a"></span>wilayah jeruk</span>
+        <span>━ batas keputusan</span><span>┅ batas margin</span>
+        <span><span style="color:#2563eb;font-weight:700">◯</span> support vector</span>
+      </div>
+      <div class="stats" style="margin-top:12px">
+        <div class="stat"><div class="v" id="accTrain">–</div><div class="l">Akurasi latihan<br>(data latih)</div></div>
+        <div class="stat"><div class="v" id="accTest">–</div><div class="l">Akurasi ujian<br>(data baru)</div></div>
+        <div class="stat"><div class="v" id="nSV">–</div><div class="l">Jumlah<br>support vector</div></div>
+      </div>
+      <div class="explain" id="explain" style="margin-top:12px"></div>
+    </div>
+
+    <div class="col-side">
+      <div class="box">
+        <h3>Skenario siap pakai</h3>
+        <div class="scen" id="scen">
+          <button data-s="1"><b>1</b> Data mudah + kernel Linear</button>
+          <button data-s="2"><b>2</b> Ada apel hijau + kernel Linear (gagal)</button>
+          <button data-s="3"><b>3</b> Ada apel hijau + kernel RBF (berhasil)</button>
+          <button data-s="4"><b>4</b> Data berantakan + RBF γ besar, C besar (menghafal)</button>
+          <button data-s="5"><b>5</b> Data berantakan + RBF γ kecil, C kecil (seimbang)</button>
+        </div>
+      </div>
+      <div class="box">
+        <h3>1 · Data</h3>
+        <div class="btns" id="dataBtns">
+          <button data-ds="A" class="on">Mudah</button>
+          <button data-ds="B">Ada apel hijau</button>
+          <button data-ds="C">Data berantakan</button>
+        </div>
+      </div>
+      <div class="box">
+        <h3>2 · Kernel & pengaturan</h3>
+        <div class="btns" id="kernBtns">
+          <button data-k="linear" class="on">Linear</button>
+          <button data-k="poly">Polinomial</button>
+          <button data-k="rbf">RBF (Gaussian)</button>
+        </div>
+        <div class="param"><span class="pl">C (ketegasan)</span><input type="range" id="sC" min="0" max="4" step="1" value="2"><span class="pv" id="vC">1</span></div>
+        <div class="pdesc">Kecil: margin lebar, boleh ada yang salah. Besar: berusaha tidak salah sama sekali.</div>
+        <div id="wrapD"><div class="param"><span class="pl">d (derajat)</span><input type="range" id="sD" min="2" max="4" step="1" value="2"><span class="pv" id="vD">2</span></div>
+        <div class="pdesc">Makin tinggi, batas makin bisa melengkung.</div></div>
+        <div id="wrapG"><div class="param"><span class="pl">γ (gamma)</span><input type="range" id="sG" min="0" max="4" step="1" value="1"><span class="pv" id="vG">0.5</span></div>
+        <div class="pdesc">Seberapa jauh pengaruh satu buah. Besar: batas berliku mengikuti tiap buah.</div></div>
+      </div>
+      <div class="box">
+        <h3>3 · Jalankan</h3>
+        <div class="btns">
+          <button class="primary" id="btnTrain">▶ Latih Model</button>
+          <button id="btnTest" disabled>📝 Uji dengan Data Baru</button>
+          <button id="btnReset">↺ Ulang</button>
+        </div>
+        <div class="btns" style="margin-top:8px" id="clickBtns">
+          <span class="hint" style="align-self:center">Klik grafik untuk:</span>
+          <button data-c="probe" class="on">❓ Tebak buah</button>
+          <button data-c="apel">+ 🍎</button>
+          <button data-c="jeruk">+ 🍊</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Rumus & makna -->
+  <div class="cards">
+    <div class="card" style="grid-column:1/-1">
+      <h4>Rumus umum SVM</h4>
+      <div class="formula">f(<b>x</b>) = Σ<sub>i</sub> α<sub>i</sub> · y<sub>i</sub> · K(<b>x</b><sub>i</sub>, <b>x</b>) + b &nbsp;&nbsp;&nbsp;→&nbsp;&nbsp;&nbsp; f(<b>x</b>) ≥ 0 : <b>Apel</b> &nbsp;|&nbsp; f(<b>x</b>) &lt; 0 : <b>Jeruk</b></div>
+      <p style="text-align:center;margin:0">Artinya: untuk menebak buah baru <b>x</b>, model <b>membandingkan</b> buah itu dengan buah-buah latih penting (support vector) memakai fungsi kemiripan K, memberi bobot α, lalu menjumlahkannya. Tanda hasilnya (positif/negatif) menentukan jawaban.</p>
+      <div class="formula small" id="kFormula"></div>
+      <p id="kMeaning" style="text-align:center;margin:0;font-size:14px"></p>
+    </div>
+    <div class="card">
+      <h4><span class="tag t-in">INPUT</span>Nilai yang dimasukkan</h4>
+      <ul>
+        <li><b>x</b> = (berat, warna) → ciri sebuah buah.</li>
+        <li>Saat <b>training</b>: setiap buah latih <b>x</b><sub>i</sub> beserta labelnya <b>y</b><sub>i</sub> (+1 apel, −1 jeruk).</li>
+        <li>Saat <b>prediksi</b>: hanya <b>x</b> buah baru, tanpa label.</li>
+        <li>Sebelum dipakai, berat dan warna diubah ke skala yang sebanding (normalisasi), agar satuan gram tidak "mengalahkan" skala warna.</li>
+      </ul>
+      <div id="inNow" class="hint"></div>
+    </div>
+    <div class="card">
+      <h4><span class="tag t-learn">DIPELAJARI</span>Nilai hasil training</h4>
+      <ul>
+        <li><b>α<sub>i</sub></b>: bobot setiap buah latih. Sebagian besar bernilai 0 (tidak berpengaruh). Buah dengan α &gt; 0 disebut <b>support vector</b>.</li>
+        <li><b>b</b>: nilai geser (bias) yang menggeser posisi batas.</li>
+        <li id="wItem">Pada kernel Linear, semua itu bisa diringkas menjadi bobot <b>w</b>, sehingga rumusnya menjadi f(<b>x</b>) = w₁·berat + w₂·warna + b.</li>
+      </ul>
+      <div id="learnNow" class="hint"></div>
+    </div>
+    <div class="card">
+      <h4><span class="tag t-human">DITENTUKAN MANUSIA</span>Hyperparameter</h4>
+      <ul>
+        <li><b>Jenis kernel</b> K: cara mengukur kemiripan dua buah.</li>
+        <li><b>C</b>: seberapa keras model menghindari kesalahan pada data latih.</li>
+        <li><b>d</b> (Polinomial) atau <b>γ</b> (RBF): seberapa lentur batasnya.</li>
+      </ul>
+      <p class="hint">Nilai-nilai ini tidak dipelajari otomatis; manusia yang mencoba-coba dan memilih yang hasil ujiannya terbaik.</p>
+    </div>
+    <div class="card">
+      <h4><span class="tag t-out">OUTPUT</span>Hasil tebakan</h4>
+      <ul>
+        <li>Nilai <b>f(x)</b>: tandanya menentukan kelas, besarnya menunjukkan keyakinan.</li>
+        <li>f(x) jauh dari 0 → buah jauh dari batas → <b>yakin</b>.</li>
+        <li>f(x) dekat 0 → buah dekat batas → <b>ragu-ragu</b>.</li>
+      </ul>
+      <div id="outNow" class="hint">Klik grafik (mode ❓) untuk melihat nilai f(x) sebuah buah.</div>
+    </div>
+    <div class="card" style="grid-column:1/-1">
+      <h4>Cara membaca grafik</h4>
+      <div class="row" style="gap:24px">
+        <ul style="flex:1;min-width:260px">
+          <li><b>Setiap emoji</b> adalah satu buah: posisi kiri–kanan = berat, bawah–atas = warna.</li>
+          <li><b>Garis hitam tebal</b> adalah <b>batas keputusan</b>, tempat f(x) = 0. Buah di sisi merah ditebak apel, di sisi oranye ditebak jeruk.</li>
+          <li><b>Garis putus-putus</b> adalah tempat f(x) = +1 dan −1. Daerah di antaranya disebut <b>margin</b> ("jalan tengah"). Warnanya lebih pucat karena model kurang yakin di sana.</li>
+        </ul>
+        <ul style="flex:1;min-width:260px">
+          <li><b>SVM mencari batas dengan margin selebar mungkin</b>, supaya buah baru yang sedikit berbeda tetap ditebak dengan benar.</li>
+          <li><b>Lingkaran biru</b> = support vector: buah yang berada di tepi atau di dalam margin. Hanya buah-buah inilah yang menentukan letak batas; buah lain boleh dihapus tanpa mengubah garis.</li>
+          <li>Dengan kernel <b>Polinomial</b> atau <b>RBF</b>, batasnya bisa <b>melengkung</b>, sehingga bisa memisahkan pola yang tidak bisa dipisah garis lurus.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ======================================================= DL ======================================================= -->
+<section class="panel" id="panel-dl">
+  <div class="box" style="margin-bottom:12px">
+    <div class="btns" style="align-items:center">
+      <span class="hint">Pilih gambar:</span>
+      <button data-p="1">Angka 1</button>
+      <button data-p="7">Angka 7</button>
+      <button data-p="L">Huruf L</button>
+      <button data-p="T">Huruf T</button>
+      <button id="btnClear">✏️ Kosongkan & gambar sendiri</button>
+      <span style="flex:1"></span>
+      <button id="btnNums">🔢 Tampilkan angka</button>
+    </div>
+  </div>
+
+  <h3 style="margin:4px 0 8px">A. Simulasi end-to-end: perjalanan gambar sampai menjadi tebakan</h3>
+  <div class="box">
+    <div class="ctrlbar">
+      <button class="primary" id="sAuto">▶ Putar semua tahap</button>
+      <button id="sNext">⏭ Tahap berikutnya</button>
+      <button id="sSkip">⏩ Langsung ke hasil</button>
+      <button id="sReset">↺ Ulang dari awal</button>
+      <span style="flex:1"></span>
+      <span class="hint">Kecepatan:</span>
+      <span class="btns speed" id="speed"><button data-v="3">Lambat</button><button data-v="1" class="on">Sedang</button><button data-v="0.3">Cepat</button></span>
+    </div>
+    <div class="chips" id="chips"></div>
+    <div class="explain narr" id="narr"></div>
+  </div>
+
+  <div class="box" style="margin-top:12px">
+    <h3 style="margin:0 0 6px">Gambaran umum: jaringan CNN dan keterhubungan antar-neuron</h3>
+    <svg id="net" viewBox="0 0 1180 360" style="border:none"></svg>
+    <div class="row" style="gap:12px;margin-top:6px">
+      <div class="card" style="flex:1;min-width:260px"><h4>🔗 Koneksi lokal (konvolusi)</h4><p>Setiap kotak di feature map adalah satu <b>neuron</b>. Neuron ini <b>hanya terhubung ke 9 piksel</b> (3×3) di dekatnya, bukan ke seluruh gambar. Angka kernel adalah <b>bobot</b> pada sambungan tersebut.</p></div>
+      <div class="card" style="flex:1;min-width:260px"><h4>♻️ Bobot dipakai bersama</h4><p>Semua 64 neuron dalam satu feature map memakai <b>kernel yang sama</b>. Jadi 4 kernel × 9 angka = hanya <b>36 bobot</b> untuk 256 neuron. Inilah yang membuat CNN hemat dan dapat menemukan pola di posisi mana pun.</p></div>
+      <div class="card" style="flex:1;min-width:260px"><h4>🕸️ Koneksi penuh (fully connected)</h4><p>Di bagian akhir, <b>setiap</b> neuron pada deret flatten terhubung ke <b>setiap</b> neuron output: 64 × 4 = <b>256 sambungan</b>. Di sinilah semua pola dikumpulkan untuk memutuskan kelas.</p></div>
+    </div>
+  </div>
+
+  <div class="pipeline" style="margin-top:12px">
+    <div class="stage" id="st0">
+      <h4>① Input</h4>
+      <div class="sub">Gambar 8×8 = 64 angka. Hitam = 1, putih = 0. Klik/seret untuk menggambar.</div>
+      <div class="grid" id="inGrid"></div>
+    </div>
+    <div class="arrow">→</div>
+    <div class="stage" id="st1">
+      <h4>② Konvolusi → ③ ReLU</h4>
+      <div class="sub">4 kernel menghasilkan 4 feature map. Biru = cocok, merah = tidak cocok.</div>
+      <div class="fmaps" id="fmaps"></div>
+      <div class="curk"><span id="curkName">Kernel:</span><div class="mat" id="curK"></div></div>
+    </div>
+    <div class="arrow">→</div>
+    <div class="stage" id="st2">
+      <h4>④ Pooling</h4>
+      <div class="sub">Setiap 2×2 kotak diringkas menjadi 1 (nilai terbesar). 8×8 → 4×4.</div>
+      <div class="fmaps" id="pmaps"></div>
+    </div>
+  </div>
+  <div style="text-align:center;font-size:22px;color:#9aa5b1">↓</div>
+  <div class="row2">
+    <div class="stage" id="st3" style="align-items:flex-start">
+      <h4>⑤ Flatten: disusun menjadi satu deret 64 angka</h4>
+      <div class="striplbl"><span>dari peta garis datar</span><span>garis tegak</span><span>miring ╱</span><span>miring ╲</span></div>
+      <div class="strip" id="flat"></div>
+      <h4 style="margin-top:12px">⑥ Dibandingkan dengan pola khas setiap kelas</h4>
+      <div class="sub" style="max-width:none;text-align:left">Pola khas = pola yang sudah dipelajari saat training. Skor kemiripan: 0 = tidak mirip, 1 = sama persis.</div>
+      <div id="cmp"></div>
+    </div>
+    <div class="arrow">→</div>
+    <div class="stage" id="st4">
+      <h4>⑦ Softmax & hasil</h4>
+      <div class="sub">Skor kemiripan diubah menjadi persentase keyakinan (total 100%).</div>
+      <div class="bars" id="bars"></div>
+      <div class="verdict" id="verdict"></div>
+    </div>
+  </div>
+
+  <h3 style="margin:22px 0 4px">B. Laboratorium Kernel: apa yang sebenarnya dilakukan sebuah kernel?</h3>
+  <div class="explain" style="margin-top:6px">
+    <b>Kernel</b> (disebut juga <b>filter</b>) adalah <b>tabel kecil berisi angka</b>, biasanya berukuran 3×3. Kernel <b>digeser</b> ke setiap posisi pada gambar. Di setiap posisi, setiap angka kernel <b>dikalikan</b> dengan angka piksel di bawahnya, lalu semua hasilnya <b>dijumlahkan</b>. Proses ini disebut <b>konvolusi</b>. Hasilnya besar jika bagian gambar itu mirip dengan pola kernel. Kumpulan hasil dari seluruh posisi disebut <b>feature map</b> (peta ciri).
+  </div>
+  <div class="lab">
+    <div>
+      <div class="hint" style="margin-bottom:6px">Pilih kernel:</div>
+      <div class="klist" id="klist"></div>
+    </div>
+    <div>
+      <div class="labmain">
+        <div class="calcbox">Gambar input<div class="grid" id="labIn"></div></div>
+        <div class="calcbox">Kernel terpilih<div class="mat" id="labK"></div></div>
+        <div class="calcbox">Feature map (hasil konvolusi)<div class="grid" id="labOut"></div>
+          <span style="font-weight:400">biru = positif, merah = negatif</span></div>
+        <div class="calcbox">Setelah ReLU<div class="grid" id="labRelu"></div>
+          <span style="font-weight:400">nilai negatif dijadikan 0</span></div>
+      </div>
+      <p id="kDesc" style="margin:10px 0 6px"></p>
+      <div class="btns" style="align-items:center">
+        <button id="bPrev">◀</button>
+        <button id="bPlay">▶ Putar</button>
+        <button id="bNext">▶|</button>
+        <span class="hint">Posisi kernel: <b id="posTxt"></b></span>
+      </div>
+      <div class="calcrow" style="margin-top:10px">
+        <div class="calcbox">Piksel di bawah kernel<div class="mat" id="cPatch"></div></div>
+        <div class="op">×</div>
+        <div class="calcbox">Angka kernel<div class="mat" id="cKern"></div></div>
+        <div class="op">=</div>
+        <div class="calcbox">Hasil perkalian<div class="mat" id="cProd"></div></div>
+      </div>
+      <div class="result" id="cSum"></div>
+    </div>
+  </div>
+
+  <div class="cards">
+    <div class="card">
+      <h4>Kamus singkat</h4>
+      <ul>
+        <li><b>Piksel</b>: satu kotak terkecil pada gambar, berisi angka.</li>
+        <li><b>Kernel / filter</b>: tabel angka kecil untuk mendeteksi satu jenis pola.</li>
+        <li><b>Konvolusi</b>: menggeser kernel, mengalikan, lalu menjumlahkan.</li>
+        <li><b>Feature map</b>: peta yang menunjukkan di mana pola ditemukan.</li>
+        <li><b>ReLU</b>: membuang nilai negatif (dijadikan 0).</li>
+        <li><b>Pooling</b>: meringkas peta ciri agar lebih kecil.</li>
+        <li><b>Kelas</b>: kemungkinan jawaban (di sini: 1, 7, L, T).</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h4>Di CNN sungguhan</h4>
+      <ul>
+        <li>Angka di dalam kernel <b>tidak ditulis manusia</b>. Angka itu <b>dipelajari sendiri</b> saat training dari ribuan contoh gambar.</li>
+        <li>Ada puluhan hingga ratusan kernel, dan langkah ② dan ③ <b>diulang berkali-kali</b>: lapisan awal mengenali garis, lapisan berikutnya bentuk, lalu bagian objek (mata, tangkai buah, roda).</li>
+        <li>Prinsipnya tetap sama dengan simulasi ini.</li>
+      </ul>
+    </div>
+    <div class="card warn">
+      <h4>⚠️ Jangan tertukar</h4>
+      <p>Kata <b>kernel</b> di SVM dan di CNN <b>maknanya berbeda</b>.</p>
+      <ul>
+        <li><b>Kernel SVM</b>: rumus untuk mengukur <b>kemiripan dua data</b> (Linear, Polinomial, RBF).</li>
+        <li><b>Kernel CNN</b>: <b>tabel angka kecil</b> yang digeser di atas gambar untuk mencari pola.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+</main>
+<footer>Model di halaman ini disederhanakan untuk keperluan belajar. Data buah adalah data contoh (bukan data nyata).</footer>
+
+<script>
+document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>{
+  document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active',x===t));
+  document.querySelectorAll('.panel').forEach(p=>p.classList.toggle('active',p.id==='panel-'+t.dataset.tab));
+});
+const fmt=(v,d=2)=>{const s=(Math.round(v*10**d)/10**d).toFixed(d);return s.replace('-','−');};
+
+/* =====================================================================
+   ML: SVM
+   ===================================================================== */
+const NS='http://www.w3.org/2000/svg';
+const W=640,H=460,M={l:64,r:18,t:16,b:56},PW=W-M.l-M.r,PH=H-M.t-M.b;
+const BMIN=100,BMAX=200,CMIN=0,CMAX=10;
+const sx=b=>M.l+(b-BMIN)/(BMAX-BMIN)*PW, sy=c=>M.t+(1-(c-CMIN)/(CMAX-CMIN))*PH;
+const ix=px=>BMIN+(px-M.l)/PW*(BMAX-BMIN), iy=py=>CMIN+(1-(py-M.t)/PH)*(CMAX-CMIN);
+const nx=b=>(b-150)/25, ny=c=>(c-5)/2.5;
+const svg=document.getElementById('plot');
+function el(tag,a,p){const e=document.createElementNS(NS,tag);for(const k in a)e.setAttribute(k,a[k]);if(p)p.appendChild(e);return e;}
+const defs=el('defs',{},svg),cp=el('clipPath',{id:'clip'},defs);el('rect',{x:M.l,y:M.t,width:PW,height:PH},cp);
+const gReg=el('g',{'shape-rendering':'crispEdges'},svg),gAx=el('g',{},svg),gLines=el('g',{'clip-path':'url(#clip)'},svg),gPts=el('g',{},svg),gProbe=el('g',{},svg);
+const STEP=8,GX=Math.ceil(PW/STEP),GY=Math.ceil(PH/STEP);
+const cells=[];for(let i=0;i<GX;i++)for(let j=0;j<GY;j++){const x=M.l+i*STEP,y=M.t+j*STEP;
+  cells.push({i,j,r:el('rect',{x,y,width:Math.min(STEP,M.l+PW-x),height:Math.min(STEP,M.t+PH-y),fill:'#fff'},gReg)});}
+el('rect',{x:M.l,y:M.t,width:PW,height:PH,fill:'none',stroke:'#cbd2d9'},gAx);
+for(let b=100;b<=200;b+=20){el('line',{x1:sx(b),x2:sx(b),y1:M.t+PH,y2:M.t+PH+5,stroke:'#9aa5b1'},gAx);
+  el('text',{x:sx(b),y:M.t+PH+20,'text-anchor':'middle','font-size':12,fill:'#616e7c'},gAx).textContent=b;}
+el('text',{x:M.l+PW/2,y:H-10,'text-anchor':'middle','font-size':14,'font-weight':600,fill:'#1f2933'},gAx).textContent='Berat (gram) →';
+[[1,'hijau'],[4,'kuning'],[7,'oranye'],[10,'merah']].forEach(([c,n])=>{el('line',{x1:M.l-5,x2:M.l,y1:sy(c),y2:sy(c),stroke:'#9aa5b1'},gAx);
+  el('text',{x:M.l-8,y:sy(c)+4,'text-anchor':'end','font-size':12,fill:'#616e7c'},gAx).textContent=n;});
+el('text',{x:16,y:M.t+PH/2,'text-anchor':'middle','font-size':14,'font-weight':600,fill:'#1f2933',transform:`rotate(-90 16 ${M.t+PH/2})`},gAx).textContent='Warna →';
+
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;}}
+function gauss(r){let u=0,v=0;while(!u)u=r();while(!v)v=r();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v);}
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+function makeData(ds){
+  const r=mulberry32(ds==='A'?7:ds==='B'?11:23),pts=[];
+  const add=(n,mb,sb,mc,sc,y,emoji,test)=>{for(let i=0;i<n;i++)pts.push({b:clamp(mb+sb*gauss(r),103,197),c:clamp(mc+sc*gauss(r),0.4,9.7),y,emoji,test});};
+  if(ds==='A'){add(18,166,8,8.4,0.7,1,'🍎',false);add(18,129,8,6.3,0.6,-1,'🍊',false);add(6,166,8,8.4,0.7,1,'🍎',true);add(6,129,8,6.3,0.6,-1,'🍊',true);}
+  else if(ds==='B'){add(15,168,7,8.5,0.6,1,'🍎',false);add(18,140,7,5.8,0.6,-1,'🍊',false);add(12,116,6,2.2,0.7,1,'🍏',false);
+    add(5,168,7,8.5,0.6,1,'🍎',true);add(6,140,7,5.8,0.6,-1,'🍊',true);add(4,116,6,2.2,0.7,1,'🍏',true);}
+  else{add(20,166,9,8.4,0.8,1,'🍎',false);add(20,132,9,6.2,0.7,-1,'🍊',false);add(7,166,9,8.4,0.8,1,'🍎',true);add(7,132,9,6.2,0.7,-1,'🍊',true);
+    [[170,8.9],[160,7.8],[176,8.2]].forEach(([b,c])=>pts.push({b,c,y:-1,emoji:'🍊',test:false}));
+    [[128,6.0],[138,6.6],[124,6.8]].forEach(([b,c])=>pts.push({b,c,y:1,emoji:'🍎',test:false}));}
+  return pts;
+}
+const C_VALS=[0.1,0.3,1,10,100],G_VALS=[0.1,0.5,2,10,40];
+const S={ds:'A',kern:'linear',C:1,d:2,g:0.5,data:[],model:null,tested:false,probes:[],click:'probe'};
+
+function K(a,b){const dot=a[0]*b[0]+a[1]*b[1];
+  if(S.kern==='linear')return dot;
+  if(S.kern==='poly')return Math.pow(dot+1,S.d);
+  const dx=a[0]-b[0],dy=a[1]-b[1];return Math.exp(-S.g*(dx*dx+dy*dy));}
+const train=()=>S.data.filter(p=>!p.test);
+function fitSVM(){
+  const T=train(),n=T.length,X=T.map(p=>[nx(p.b),ny(p.c)]),Y=T.map(p=>p.y),C=S.C;
+  const Km=X.map(a=>X.map(b=>K(a,b)));
+  const al=new Array(n).fill(0);let b=0,passes=0,iter=0;const rnd=mulberry32(5),tol=1e-3;
+  const f=i=>{let s=b;for(let k=0;k<n;k++)if(al[k])s+=al[k]*Y[k]*Km[k][i];return s;};
+  while(passes<15&&iter<3000){let ch=0;
+    for(let i=0;i<n;i++){const Ei=f(i)-Y[i];
+      if((Y[i]*Ei<-tol&&al[i]<C)||(Y[i]*Ei>tol&&al[i]>0)){
+        let j=Math.floor(rnd()*(n-1));if(j>=i)j++;
+        const Ej=f(j)-Y[j],ai=al[i],aj=al[j];
+        let L,Hh;if(Y[i]!==Y[j]){L=Math.max(0,aj-ai);Hh=Math.min(C,C+aj-ai);}else{L=Math.max(0,ai+aj-C);Hh=Math.min(C,ai+aj);}
+        if(Math.abs(L-Hh)<1e-9)continue;
+        const eta=2*Km[i][j]-Km[i][i]-Km[j][j];if(eta>=0)continue;
+        let nj=aj-Y[j]*(Ei-Ej)/eta;nj=Math.min(Hh,Math.max(L,nj));if(Math.abs(nj-aj)<1e-5)continue;
+        const ni=ai+Y[i]*Y[j]*(aj-nj);al[i]=ni;al[j]=nj;
+        const b1=b-Ei-Y[i]*(ni-ai)*Km[i][i]-Y[j]*(nj-aj)*Km[i][j];
+        const b2=b-Ej-Y[i]*(ni-ai)*Km[i][j]-Y[j]*(nj-aj)*Km[j][j];
+        b=(ni>0&&ni<C)?b1:(nj>0&&nj<C)?b2:(b1+b2)/2;ch++;}}
+    iter++;passes=ch?0:passes+1;}
+  const sv=[];for(let i=0;i<n;i++)if(al[i]>1e-6)sv.push({x:X[i],y:Y[i],a:al[i],p:T[i]});
+  let w=null;if(S.kern==='linear'){w=[0,0];sv.forEach(s=>{w[0]+=s.a*s.y*s.x[0];w[1]+=s.a*s.y*s.x[1];});}
+  S.model={sv,b,w};
+}
+function decision(b,c){const x=[nx(b),ny(c)];let s=S.model.b;for(const v of S.model.sv)s+=v.a*v.y*K(v.x,x);return s;}
+const acc=set=>set.length?set.filter(p=>(decision(p.b,p.c)>=0?1:-1)===p.y).length/set.length:null;
+
+function drawModel(){
+  gLines.innerHTML='';
+  if(!S.model){cells.forEach(c=>c.r.setAttribute('fill','#fff'));return;}
+  const G=[];for(let i=0;i<=GX;i++){G.push([]);for(let j=0;j<=GY;j++)G[i].push(decision(ix(M.l+i*STEP),iy(M.t+j*STEP)));}
+  for(const c of cells){const v=(G[c.i][c.j]+G[c.i+1][c.j]+G[c.i][c.j+1]+G[c.i+1][c.j+1])/4;
+    c.r.setAttribute('fill',v>=1?'#f3b4b4':v>=0?'#fadede':v>-1?'#fdebd5':'#fbd19a');}
+  [[0,'#111827',3,null],[1,'#4b5563',1.8,'7 5'],[-1,'#4b5563',1.8,'7 5']].forEach(([lv,col,wd,da])=>{
+    const segs=[];
+    for(let i=0;i<GX;i++)for(let j=0;j<GY;j++){
+      const v=[G[i][j]-lv,G[i+1][j]-lv,G[i+1][j+1]-lv,G[i][j+1]-lv];
+      const P=[[i,j],[i+1,j],[i+1,j+1],[i,j+1]],pts=[];
+      for(let e=0;e<4;e++){const a=v[e],bb=v[(e+1)%4];if((a<0)!==(bb<0)){const t=a/(a-bb),pa=P[e],pb=P[(e+1)%4];
+        pts.push([M.l+(pa[0]+t*(pb[0]-pa[0]))*STEP,M.t+(pa[1]+t*(pb[1]-pa[1]))*STEP]);}}
+      for(let k=0;k+1<pts.length;k+=2)segs.push([pts[k],pts[k+1]]);
+    }
+    // gabungkan potongan menjadi garis utuh agar pola putus-putus rapi
+    const key=q=>q[0].toFixed(1)+','+q[1].toFixed(1),adj=new Map();
+    segs.forEach((sg,idx)=>sg.forEach(q=>{const k=key(q);if(!adj.has(k))adj.set(k,[]);adj.get(k).push(idx);}));
+    const used=new Array(segs.length).fill(false);let d='';
+    const other=(idx,k)=>key(segs[idx][0])===k?segs[idx][1]:segs[idx][0];
+    for(let s0=0;s0<segs.length;s0++){if(used[s0])continue;used[s0]=true;
+      let chain=[segs[s0][0],segs[s0][1]];
+      for(const dir of [1,0]){let cur=dir?chain[chain.length-1]:chain[0];
+        while(true){const k=key(cur),nxt=(adj.get(k)||[]).find(x=>!used[x]);if(nxt==null)break;used[nxt]=true;cur=other(nxt,k);
+          if(dir)chain.push(cur);else chain.unshift(cur);}}
+      d+='M'+chain.map(q=>q[0].toFixed(1)+' '+q[1].toFixed(1)).join('L');}
+    const a={d,stroke:col,'stroke-width':wd,fill:'none','stroke-linecap':'round'};if(da)a['stroke-dasharray']=da;el('path',a,gLines);
+  });
+}
+function drawPoints(){
+  gPts.innerHTML='';const svs=new Set(S.model?S.model.sv.map(s=>s.p):[]);
+  for(const p of S.data){if(p.test&&!S.tested)continue;const x=sx(p.b),y=sy(p.c);
+    if(svs.has(p))el('circle',{cx:x,cy:y,r:14,fill:'none',stroke:'#2563eb','stroke-width':2.5},gPts);
+    if(p.test)el('circle',{cx:x,cy:y,r:13,fill:'#fff',stroke:'#374151','stroke-width':1.5,'stroke-dasharray':'3 2'},gPts);
+    el('text',{x,y:y+6,'text-anchor':'middle','font-size':p.test?16:18},gPts).textContent=p.emoji;
+    if(p.test&&S.model){const ok=(decision(p.b,p.c)>=0?1:-1)===p.y;
+      el('text',{x:x+11,y:y-7,'font-size':15,'font-weight':800,fill:ok?'#16a34a':'#dc2626'},gPts).textContent=ok?'✓':'✗';}}
+}
+function drawProbes(){
+  gProbe.innerHTML='';if(!S.model)return;
+  S.probes.forEach((q,i)=>{const f=decision(q.b,q.c),x=sx(q.b),y=sy(q.c),last=i===S.probes.length-1;
+    el('circle',{cx:x,cy:y,r:13,fill:'#fff',stroke:'#7c3aed','stroke-width':2.5},gProbe);
+    el('text',{x,y:y+6,'text-anchor':'middle','font-size':16},gProbe).textContent=f>=0?'🍎':'🍊';
+    if(last){const lbl=`f(x) = ${fmt(f)} → ${f>=0?'Apel':'Jeruk'}`,wd=lbl.length*7.4+12,tx=Math.min(x+18,M.l+PW-wd-2);
+      el('rect',{x:tx,y:y-31,width:wd,height:22,rx:6,fill:'#1f2933'},gProbe);
+      el('text',{x:tx+6,y:y-15,'font-size':13,fill:'#fff','font-weight':600},gProbe).textContent=lbl;}});
+}
+const pct=v=>v==null?'–':Math.round(v*100)+'%';
+function kernelText(){
+  if(S.kern==='linear')return['K(<b>x</b><sub>i</sub>, <b>x</b>) = <b>x</b><sub>i</sub> · <b>x</b> &nbsp;&nbsp;⇔&nbsp;&nbsp; f(<b>x</b>) = w₁·berat + w₂·warna + b',
+    '<b>Kernel Linear</b>: kemiripan diukur dengan perkalian titik biasa. Hasilnya selalu <b>garis lurus</b>.'];
+  if(S.kern==='poly')return[`K(<b>x</b><sub>i</sub>, <b>x</b>) = (<b>x</b><sub>i</sub> · <b>x</b> + 1)<sup>d</sup>, &nbsp; d = ${S.d}`,
+    '<b>Kernel Polinomial</b>: perkalian titik yang dipangkatkan. Batasnya bisa berupa <b>kurva</b> (parabola dan sejenisnya).'];
+  return[`K(<b>x</b><sub>i</sub>, <b>x</b>) = exp(−γ · ‖<b>x</b><sub>i</sub> − <b>x</b>‖²), &nbsp; γ = ${S.g}`,
+    '<b>Kernel RBF</b>: kemiripan berdasarkan <b>jarak</b>. Dua buah yang berdekatan bernilai mendekati 1, yang berjauhan mendekati 0. Batasnya bisa <b>berbentuk bebas</b>, seperti pulau.'];
+}
+function render(){
+  drawModel();drawPoints();drawProbes();
+  const m=S.model,at=m?acc(train()):null,ae=m&&S.tested?acc(S.data.filter(p=>p.test)):null;
+  document.getElementById('accTrain').textContent=pct(at);
+  document.getElementById('accTest').textContent=pct(ae);
+  document.getElementById('nSV').textContent=m?`${m.sv.length} / ${train().length}`:'–';
+  document.getElementById('btnTest').disabled=!m;
+  document.getElementById('wrapD').style.display=S.kern==='poly'?'':'none';
+  document.getElementById('wrapG').style.display=S.kern==='rbf'?'':'none';
+  const [kf,km]=kernelText();document.getElementById('kFormula').innerHTML=kf;document.getElementById('kMeaning').innerHTML=km;
+  document.getElementById('wItem').style.opacity=S.kern==='linear'?1:.5;
+  // live values
+  const L=document.getElementById('learnNow');
+  if(!m)L.innerHTML='Belum dilatih.';
+  else{let h=`Hasil training saat ini: <b>${m.sv.length}</b> dari ${train().length} buah memiliki α &gt; 0 (support vector), b = <span class="val">${fmt(m.b)}</span>.`;
+    if(m.w)h+=`<br>Rumus jadi: f(x) = <span class="val">${fmt(m.w[0])}</span>·berat′ + <span class="val">${fmt(m.w[1])}</span>·warna′ ${m.b<0?'−':'+'} <span class="val">${fmt(Math.abs(m.b))}</span><br><span style="font-size:12px">(′ = setelah normalisasi)</span>`;
+    L.innerHTML=h;}
+  const q=S.probes[S.probes.length-1],I=document.getElementById('inNow'),O=document.getElementById('outNow');
+  if(q&&m){const f=decision(q.b,q.c);
+    I.innerHTML=`Buah terakhir yang ditebak: berat = <span class="val">${Math.round(q.b)} g</span>, warna = <span class="val">${fmt(q.c,1)}</span> → setelah normalisasi <b>x</b> = (<span class="val">${fmt(nx(q.b))}</span>, <span class="val">${fmt(ny(q.c))}</span>)`;
+    O.innerHTML=`f(x) = <span class="val">${fmt(f)}</span> → <b>${f>=0?'positif → Apel 🍎':'negatif → Jeruk 🍊'}</b>, ${Math.abs(f)>=1?'di luar margin, model <b>yakin</b>.':'di dalam margin, model <b>ragu-ragu</b>.'}`;}
+  else{I.innerHTML='';O.innerHTML='Klik grafik (mode ❓) untuk melihat nilai f(x) sebuah buah.';}
+  // explanation
+  let h='';
+  if(!m){h='<b>Ini data latih</b>: setiap emoji adalah satu buah yang sudah diketahui jenisnya.';
+    if(S.ds==='B')h+=' Perhatikan <b>apel hijau 🍏</b> di kiri bawah: apel kini berada di dua tempat yang terpisah oleh kelompok jeruk.';
+    if(S.ds==='C')h+=' Data ini <b>berantakan</b>: ada beberapa buah yang salah dicatat (🍊 di tengah kelompok 🍎 dan sebaliknya).';
+    h+='<br>Pilih kernel, lalu klik <b>▶ Latih Model</b> (atau pilih salah satu skenario siap pakai).';}
+  else{
+    h=`Model SVM dengan kernel <b>${{linear:'Linear',poly:'Polinomial',rbf:'RBF'}[S.kern]}</b> telah dilatih. Akurasi latihan <b>${pct(at)}</b>.`;
+    if(at<0.85)h+=`<br>⚠️ <b>Underfitting</b>: batasnya terlalu sederhana untuk pola data ini, sehingga banyak buah latih pun salah ditebak.${S.kern==='linear'?' Garis lurus tidak mungkin memisahkan apel yang berada di dua tempat. Coba kernel <b>RBF</b>.':''}`;
+    else if(S.kern==='rbf'&&S.g>=10)h+='<br>Perhatikan batasnya: berbentuk <b>pulau-pulau kecil</b> di sekitar buah tertentu. Model mulai <b>menghafal</b> data latih, termasuk buah yang salah dicatat.';
+    else h+=' Batas keputusan memisahkan kedua kelompok dengan baik.';
+    if(!S.tested)h+='<br>Klik <b>📝 Uji dengan Data Baru</b> untuk melihat apakah model juga benar pada buah yang belum pernah dilihat.';
+    if(ae!=null){h+=`<br><br>📝 <b>Hasil ujian</b>: ${pct(ae)} benar pada buah baru (lingkaran putus-putus). Tanda ✗ = salah tebak.`;
+      if(at-ae>0.1)h+=' Akurasi latihan jauh lebih tinggi daripada akurasi ujian → model <b>menghafal (overfitting)</b>. Coba kecilkan γ atau C.';
+      else if(ae>=0.9)h+=' Model mampu <b>menggeneralisasi</b>: tetap benar pada data baru.';}
+  }
+  document.getElementById('explain').innerHTML=h;
+}
+function retrain(){if(S.model){fitSVM();}render();}
+function setData(ds){S.ds=ds;S.data=makeData(ds);S.model=null;S.tested=false;S.probes=[];
+  document.querySelectorAll('#dataBtns button').forEach(x=>x.classList.toggle('on',x.dataset.ds===ds));render();}
+function setKern(k){S.kern=k;document.querySelectorAll('#kernBtns button').forEach(x=>x.classList.toggle('on',x.dataset.k===k));}
+function setC(i){document.getElementById('sC').value=i;S.C=C_VALS[i];document.getElementById('vC').textContent=S.C;}
+function setG(i){document.getElementById('sG').value=i;S.g=G_VALS[i];document.getElementById('vG').textContent=S.g;}
+document.querySelectorAll('#dataBtns button').forEach(b=>b.onclick=()=>setData(b.dataset.ds));
+document.querySelectorAll('#kernBtns button').forEach(b=>b.onclick=()=>{setKern(b.dataset.k);retrain();});
+document.getElementById('sC').oninput=e=>{setC(+e.target.value);retrain();};
+document.getElementById('sG').oninput=e=>{setG(+e.target.value);retrain();};
+document.getElementById('sD').oninput=e=>{S.d=+e.target.value;document.getElementById('vD').textContent=S.d;retrain();};
+document.getElementById('btnTrain').onclick=()=>{fitSVM();render();};
+document.getElementById('btnTest').onclick=()=>{S.tested=true;render();};
+document.getElementById('btnReset').onclick=()=>setData(S.ds);
+document.querySelectorAll('#clickBtns button').forEach(b=>b.onclick=()=>{document.querySelectorAll('#clickBtns button').forEach(x=>x.classList.toggle('on',x===b));S.click=b.dataset.c;});
+document.querySelectorAll('#scen button').forEach(b=>b.onclick=()=>{
+  const s=b.dataset.s;
+  const cfg={1:['A','linear',2,1],2:['B','linear',2,1],3:['B','rbf',2,1],4:['C','rbf',4,4],5:['C','rbf',2,1]}[s];
+  setData(cfg[0]);setKern(cfg[1]);setC(cfg[2]);setG(cfg[3]);fitSVM();render();
+  document.querySelectorAll('#scen button').forEach(x=>x.classList.toggle('on',x===b));
+});
+svg.addEventListener('click',ev=>{
+  const r=svg.getBoundingClientRect(),px=(ev.clientX-r.left)/r.width*W,py=(ev.clientY-r.top)/r.height*H;
+  if(px<M.l||px>M.l+PW||py<M.t||py>M.t+PH)return;
+  const b=ix(px),c=iy(py);
+  if(S.click==='probe'){if(!S.model){document.getElementById('explain').innerHTML+='<br>👉 Latih model terlebih dahulu sebelum menebak.';return;}
+    S.probes.push({b,c});if(S.probes.length>5)S.probes.shift();render();return;}
+  S.data.push({b,c,y:S.click==='apel'?1:-1,emoji:S.click==='apel'?'🍎':'🍊',test:false});retrain();
+});
+setData('A');
+
+/* =====================================================================
+   DL: CNN
+   ===================================================================== */
+const N=8;
+const PRESETS={
+  '1':["........","....#...","....#...","....#...","....#...","....#...","....#...","........"],
+  '7':["........",".######.",".....#..","....#...","...#....","..#.....",".#......","........"],
+  'L':["........",".#......",".#......",".#......",".#......",".#......",".######.","........"],
+  'T':["........",".######.","...#....","...#....","...#....","...#....","...#....","........"]};
+const CLASS_NAMES={'1':'Angka 1','7':'Angka 7','L':'Huruf L','T':'Huruf T'};
+const KERNELS=[
+  {id:'h',name:'Garis datar',icon:'─',k:[[-1,-1,-1],[2,2,2],[-1,-1,-1]],desc:'Baris tengah bernilai positif (+2), baris atas dan bawah negatif (−1). Hasilnya besar jika di posisi itu ada <b>garis mendatar</b>.'},
+  {id:'v',name:'Garis tegak',icon:'│',k:[[-1,2,-1],[-1,2,-1],[-1,2,-1]],desc:'Kolom tengah positif, kolom kiri dan kanan negatif. Hasilnya besar jika ada <b>garis tegak</b>.'},
+  {id:'d1',name:'Garis miring ╱',icon:'╱',k:[[-1,-1,2],[-1,2,-1],[2,-1,-1]],desc:'Diagonal dari kiri bawah ke kanan atas bernilai positif. Mendeteksi <b>garis miring ke kanan</b>.'},
+  {id:'d2',name:'Garis miring ╲',icon:'╲',k:[[2,-1,-1],[-1,2,-1],[-1,-1,2]],desc:'Diagonal dari kiri atas ke kanan bawah bernilai positif. Mendeteksi <b>garis miring ke kiri</b>.'},
+  {id:'e',name:'Deteksi tepi',icon:'▢',k:[[-1,-1,-1],[-1,8,-1],[-1,-1,-1]],desc:'Pusat bernilai +8, sekelilingnya −1. Jika semua piksel sama, hasilnya 0. Hasilnya besar di <b>tepi/ujung</b> objek, tempat terjadi perubahan.'},
+  {id:'s',name:'Penajam',icon:'◆',k:[[0,-1,0],[-1,5,-1],[0,-1,0]],desc:'Menonjolkan piksel dibandingkan tetangganya, sehingga gambar terlihat <b>lebih tajam</b>.'},
+  {id:'b',name:'Pengabur (blur)',icon:'◌',k:[[1,1,1],[1,1,1],[1,1,1]],div:9,desc:'Semua bernilai 1/9: hasilnya adalah <b>rata-rata</b> 9 piksel. Gambar menjadi lebih kabur dan halus.'}
+];
+const PIPE=KERNELS.slice(0,4);
+let img=[],showNums=false,selK=0,pos=0,playT=null;
+const fromPreset=p=>PRESETS[p].map(r=>[...r].map(ch=>ch==='#'?1:0));
+const kval=(K,i,j)=>K.k[i][j]/(K.div||1);
+function convRaw(im,K){const o=[];for(let r=0;r<N;r++){o.push([]);for(let c=0;c<N;c++){let s=0;
+  for(let i=-1;i<=1;i++)for(let j=-1;j<=1;j++){const rr=r+i,cc=c+j;if(rr>=0&&rr<N&&cc>=0&&cc<N)s+=im[rr][cc]*kval(K,i+1,j+1);}o[r].push(s);}}return o;}
+const relu=m=>m.map(r=>r.map(v=>Math.max(0,v)));
+function pool(m){const o=[];for(let r=0;r<N/2;r++){o.push([]);for(let c=0;c<N/2;c++)o[r].push(Math.max(m[2*r][2*c],m[2*r][2*c+1],m[2*r+1][2*c],m[2*r+1][2*c+1]));}return o;}
+const feats=im=>PIPE.map(K=>pool(relu(convRaw(im,K))));
+const TEMPL={};for(const p in PRESETS)TEMPL[p]=feats(fromPreset(p)).flat(2);
+const KEYS=Object.keys(PRESETS);
+function cos(a,b){let d=0,na=0,nb=0;for(let i=0;i<a.length;i++){d+=a[i]*b[i];na+=a[i]*a[i];nb+=b[i]*b[i];}return na&&nb?d/Math.sqrt(na*nb):0;}
+function mkGrid(id,n,size){const g=document.getElementById(id);g.style.gridTemplateColumns=`repeat(${n},${size}px)`;g.innerHTML='';
+  for(let i=0;i<n*n;i++){const d=document.createElement('div');d.style.width=d.style.height=size+'px';g.appendChild(d);}return g;}
+function mkMap(parent,id,label,n,size){const w=document.createElement('div');w.className='fmap';w.innerHTML=`<span>${label}</span><div class="grid" id="${id}"></div>`;parent.appendChild(w);mkGrid(id,n,size);}
+function mkStrip(el){el.innerHTML='';for(let i=0;i<64;i++)el.appendChild(document.createElement('div'));}
+mkGrid('inGrid',N,28);
+PIPE.forEach((K,i)=>{mkMap(document.getElementById('fmaps'),'fm'+i,K.name,N,13);mkMap(document.getElementById('pmaps'),'pm'+i,K.name,N/2,20);});
+mkStrip(document.getElementById('flat'));
+(()=>{const c=document.getElementById('cmp');KEYS.forEach((k,i)=>{const r=document.createElement('div');r.className='cmprow';r.id='cr'+i;
+  r.innerHTML=`<span class="nm">${CLASS_NAMES[k]}</span><div class="strip" id="ts${i}"></div><span class="sc" id="sc${i}"></span>`;c.appendChild(r);mkStrip(r.querySelector('.strip'));});})();
+mkGrid('labIn',N,24);mkGrid('labOut',N,24);mkGrid('labRelu',N,24);
+const colorV=(v,mx)=>{if(v===0||!mx)return'#fff';const a=Math.min(1,Math.abs(v)/mx);return v>0?`rgba(37,99,235,${a.toFixed(2)})`:`rgba(220,38,38,${a.toFixed(2)})`;};
+const numTxt=v=>{const r=Math.round(v*100)/100;return(Number.isInteger(r)?r:r.toFixed(1)).toString().replace('-','−');};
+function paintMap(id,m,mx,nums){const g=document.getElementById(id).children,n=m.length;
+  for(let r=0;r<n;r++)for(let c=0;c<n;c++){const d=g[r*n+c],v=m[r][c];d.style.background=colorV(v,mx);
+    d.textContent=nums&&v!==0?numTxt(v):'';d.style.color=Math.abs(v)/mx>0.55?'#fff':'#374151';}}
+function paintInput(id){const g=document.getElementById(id).children;
+  for(let r=0;r<N;r++)for(let c=0;c<N;c++){const d=g[r*N+c];d.style.background=img[r][c]?'#1f2933':'#fff';
+    d.textContent=showNums?img[r][c]:'';d.style.color=img[r][c]?'#fff':'#9aa5b1';}}
+
+/* ---------- Simulasi end-to-end ---------- */
+// fase: 1 konvolusi, 2 ReLU, 3 pooling, 4 flatten, 5 bandingkan, 6 softmax, 7 selesai
+const UNITS={1:4*N*N,2:4,3:4*16,4:64,5:KEYS.length,6:1};
+const DELAY={1:35,2:550,3:90,4:45,5:900,6:700};
+const CHIP_NAMES=['① Input','② Konvolusi','③ ReLU','④ Pooling','⑤ Flatten','⑥ Bandingkan pola','⑦ Softmax & hasil'];
+let sim={ph:1,u:0,timer:null,mode:null},spd=1,C={};
+function compute(){C.raw=PIPE.map(K=>convRaw(img,K));C.rl=C.raw.map(relu);C.pl=C.rl.map(pool);C.vec=C.pl.flat(2);
+  C.empty=img.flat().every(x=>!x);C.sc=KEYS.map(k=>cos(C.vec,TEMPL[k]));
+  const e=C.sc.map(v=>Math.exp(8*v)),t=e.reduce((a,b)=>a+b,0);C.pr=e.map(v=>v/t);C.best=C.pr.indexOf(Math.max(...C.pr));}
+const done=(ph,unit)=>sim.ph>ph||(sim.ph===ph&&unit<sim.u);
+function stopRun(){if(sim.timer){clearTimeout(sim.timer);sim.timer=null;}sim.mode=null;document.getElementById('sAuto').textContent='▶ Putar semua tahap';}
+function tick(){
+  if(sim.ph>6){stopRun();renderSim();return;}
+  sim.u++;let boundary=false;
+  if(sim.u>=UNITS[sim.ph]){sim.ph++;sim.u=0;boundary=true;}
+  renderSim();
+  if(sim.ph>6||(boundary&&sim.mode==='phase')){stopRun();renderSim();return;}
+  sim.timer=setTimeout(tick,(boundary?900:DELAY[sim.ph])*spd);
+}
+function run(mode){if(C.empty){renderSim();return;}if(sim.ph>6){resetSim();}stopRun();sim.mode=mode;
+  if(mode==='all')document.getElementById('sAuto').textContent='⏸ Jeda';
+  sim.timer=setTimeout(tick,(sim.u===0?250:DELAY[sim.ph])*spd);}
+function resetSim(){stopRun();sim.ph=1;sim.u=0;}
+document.getElementById('sAuto').onclick=()=>{if(sim.mode==='all'){stopRun();renderSim();}else run('all');};
+document.getElementById('sNext').onclick=()=>run('phase');
+document.getElementById('sSkip').onclick=()=>{stopRun();sim.ph=7;sim.u=0;renderSim();};
+document.getElementById('sReset').onclick=()=>{resetSim();renderSim();};
+document.querySelectorAll('#speed button').forEach(b=>b.onclick=()=>{spd=+b.dataset.v;document.querySelectorAll('#speed button').forEach(x=>x.classList.toggle('on',x===b));});
+
+function renderSim(){
+  const ph=sim.ph,u=sim.u,cu=u-1; // cu = unit terakhir yang baru dihitung
+  // input
+  paintInput('inGrid');
+  const ig=[...document.getElementById('inGrid').children];ig.forEach(d=>d.classList.remove('hl'));
+  // feature maps
+  for(let k=0;k<4;k++){const g=document.getElementById('fm'+k).children;
+    for(let i=0;i<N*N;i++){const r=Math.floor(i/N),c=i%N,d=g[i];d.classList.remove('cur');
+      if(done(1,k*64+i)){const v=done(2,k)?C.rl[k][r][c]:C.raw[k][r][c];d.style.background=colorV(v,6);
+        d.textContent=showNums&&v!==0?numTxt(v):'';d.style.color=Math.abs(v)>3.3?'#fff':'#374151';}
+      else{d.style.background='#f3f4f6';d.textContent='';}}}
+  // pooled
+  for(let k=0;k<4;k++){const g=document.getElementById('pm'+k).children;
+    for(let i=0;i<16;i++){const d=g[i],v=C.pl[k][Math.floor(i/4)][i%4];d.classList.remove('cur');
+      if(done(3,k*16+i)){d.style.background=colorV(v,6);d.textContent=showNums&&v?numTxt(v):'';d.style.color=v>3.3?'#fff':'#374151';}
+      else{d.style.background='#f3f4f6';d.textContent='';}}}
+  // flatten
+  const fl=document.getElementById('flat').children;
+  for(let i=0;i<64;i++){fl[i].classList.remove('cur');fl[i].style.background=done(4,i)?colorV(C.vec[i],6):'#f3f4f6';}
+  // compare
+  KEYS.forEach((k,i)=>{const ts=document.getElementById('ts'+i).children;for(let j=0;j<64;j++)ts[j].style.background=colorV(TEMPL[k][j],6);
+    document.getElementById('sc'+i).innerHTML=done(5,i)?`kemiripan = <b>${C.sc[i].toFixed(2).replace('.',',')}</b>`:'';
+    document.getElementById('cr'+i).classList.toggle('cur',ph===5&&cu===i);});
+  // softmax
+  const showP=done(6,0),bars=document.getElementById('bars');bars.innerHTML='';
+  KEYS.forEach((k,i)=>{const b=document.createElement('div');b.className='bar'+(showP&&i===C.best?' top':'');const pv=showP?C.pr[i]:0;
+    b.innerHTML=`<span class="name">${CLASS_NAMES[k]}</span><span class="track"><span class="fill" style="width:${(pv*100).toFixed(0)}%"></span></span><span class="pct">${showP?Math.round(pv*100)+'%':'–'}</span>`;bars.appendChild(b);});
+  document.getElementById('verdict').textContent=C.empty?'Gambar sesuatu dulu ✏️':showP?'Tebakan: '+CLASS_NAMES[KEYS[C.best]]:'?';
+  // kernel aktif
+  let kAct=0;if(ph===1&&u>0)kAct=Math.floor(cu/64);else if(ph===2&&u>0)kAct=cu;else if(ph===3&&u>0)kAct=Math.floor(cu/16);
+  const K=PIPE[kAct],ck=document.getElementById('curK');ck.innerHTML='';
+  K.k.flat().forEach(v=>{const d=document.createElement('div');d.textContent=v>0?'+'+v:v;d.style.background=v>0?'#dbeafe':'#fee2e2';d.style.color=v>0?'#1d4ed8':'#b91c1c';ck.appendChild(d);});
+  document.getElementById('curkName').innerHTML=`Kernel${ph===1&&u>0?' yang sedang dipakai':''}: <b>${K.name}</b>`;
+  // sorotan & narasi
+  let n='',act=0;
+  if(C.empty){n='Gambar kosong. Pilih contoh gambar atau gambar sesuatu di kotak ①.';}
+  else if(ph===1&&u===0){act=0;n='<b>① Input.</b> Gambar ini bagi komputer hanyalah <b>64 angka</b> (8×8): 1 untuk kotak hitam, 0 untuk kotak putih. Belum ada perhitungan apa pun. Klik <b>▶ Putar semua tahap</b> atau <b>⏭ Tahap berikutnya</b> untuk mulai memproses.';}
+  else if(ph===1){act=1;const k=Math.floor(cu/64),i=cu%64,r=Math.floor(i/N),c=i%N,v=C.raw[k][r][c];
+    for(let a=-1;a<=1;a++)for(let b=-1;b<=1;b++){const rr=r+a,cc=c+b;if(rr>=0&&rr<N&&cc>=0&&cc<N)ig[rr*N+cc].classList.add('hl');}
+    document.getElementById('fm'+k).children[i].classList.add('cur');
+    n=`<b>② Konvolusi (kernel ${k+1} dari 4: ${PIPE[k].name}).</b> Kernel 3×3 diletakkan di baris ${r+1}, kolom ${c+1} (kotak biru pada gambar). Angka kernel dikalikan dengan angka piksel di bawahnya lalu dijumlahkan: hasilnya <b>${numTxt(v)}</b> → ${v>0?'<span style="color:#1d4ed8">cocok (biru)</span>':v<0?'<span style="color:#b91c1c">tidak cocok (merah)</span>':'tidak ada pola (putih)'}. Hasil ditulis ke feature map (kotak oranye).`;}
+  else if(ph===2&&u===0){act=1;n='<b>Konvolusi selesai.</b> Keempat kernel sudah digeser ke 64 posisi, menghasilkan 4 <b>feature map</b>. Biru = di sana pola ditemukan; merah = nilai negatif, artinya pola tidak cocok. Tahap berikutnya: <b>ReLU</b>.';}
+  else if(ph===2){act=1;n=`<b>③ ReLU (feature map ${cu+1} dari 4: ${PIPE[cu].name}).</b> Semua nilai negatif (merah) dibuang menjadi 0. Yang tersisa hanya bagian yang benar-benar cocok dengan pola. Aturannya sederhana: <b>jika negatif → 0, jika positif → tetap</b>.`;}
+  else if(ph===3&&u===0){act=2;n='<b>ReLU selesai.</b> Feature map kini hanya berisi nilai positif. Tahap berikutnya: <b>Pooling</b>, untuk meringkas setiap feature map.';}
+  else if(ph===3){act=2;const k=Math.floor(cu/16),i=cu%16,r=Math.floor(i/4),c=i%4,v=C.pl[k][r][c];
+    const fg=document.getElementById('fm'+k).children;[[0,0],[0,1],[1,0],[1,1]].forEach(([a,b])=>fg[(2*r+a)*N+2*c+b].classList.add('cur'));
+    document.getElementById('pm'+k).children[i].classList.add('cur');
+    n=`<b>④ Pooling (${PIPE[k].name}).</b> Ambil kelompok 2×2 kotak (bertanda oranye) pada feature map, pilih <b>nilai terbesarnya = ${numTxt(v)}</b>, lalu tulis ke peta kecil. Peta 8×8 diringkas menjadi 4×4, tetapi lokasi pola pentingnya tetap terlihat.`;}
+  else if(ph===4&&u===0){act=3;n='<b>Pooling selesai.</b> Kita punya 4 peta kecil berukuran 4×4 = 64 angka. Tahap berikutnya: <b>Flatten</b>, yaitu menyusun semuanya menjadi satu deret.';}
+  else if(ph===4){act=3;fl[cu].classList.add('cur');const k=Math.floor(cu/16),i=cu%16;
+    document.getElementById('pm'+k).children[i].classList.add('cur');
+    n=`<b>⑤ Flatten.</b> Angka dari peta "${PIPE[k].name}" (baris ${Math.floor(i/4)+1}, kolom ${i%4+1}) dipindahkan ke urutan ke-${cu+1} dari 64 dalam satu deret. Deret inilah "sidik jari" gambar: ringkasan pola apa yang ada dan di mana letaknya.`;}
+  else if(ph===5&&u===0){act=3;n='<b>Flatten selesai.</b> Gambar kini terwakili oleh satu deret 64 angka. Tahap berikutnya: membandingkan deret ini dengan <b>pola khas</b> setiap kelas yang sudah dipelajari saat training.';}
+  else if(ph===5){act=3;n=`<b>⑥ Membandingkan dengan pola khas "${CLASS_NAMES[KEYS[cu]]}".</b> Deret milik gambar dicocokkan dengan deret pola kelas ini, kotak demi kotak. Skor kemiripan = <b>${C.sc[cu].toFixed(2).replace('.',',')}</b> (0 = tidak mirip, 1 = sama persis).<br><span class="hint">Pada CNN sungguhan, tahap ini dilakukan oleh lapisan <i>fully connected</i> yang bobotnya dipelajari saat training.</span>`;}
+  else if(ph===6&&u===0){act=4;n='<b>Semua kelas sudah dibandingkan.</b> Tahap terakhir: <b>Softmax</b>, yang mengubah skor kemiripan menjadi persentase keyakinan.';}
+  else{act=4;const b=KEYS[C.best];
+    n=`<b>⑦ Softmax & hasil.</b> Skor kemiripan diubah menjadi persentase yang totalnya 100%. Skor tertinggi menjadi tebakan: <b>${CLASS_NAMES[b]} (${Math.round(C.pr[C.best]*100)}%)</b>.<br>Ringkasnya: <b>gambar → angka → kernel mencari pola → ReLU membuang yang tidak cocok → pooling meringkas → flatten menjadi deret → dibandingkan dengan pola kelas → persentase keyakinan</b>.`+
+      (C.pr[C.best]<0.7?' <br>⚠️ Keyakinan model rendah: gambar ini tidak terlalu mirip dengan kelas mana pun. Model tetap harus memilih salah satu dari 4 kelas yang dikenalnya.':'');}
+  document.getElementById('narr').innerHTML=n;
+  for(let i=0;i<5;i++)document.getElementById('st'+i).classList.toggle('active',!C.empty&&i===act);
+  // chips
+  const ch=document.getElementById('chips');ch.innerHTML='';
+  CHIP_NAMES.forEach((nm,i)=>{const d=document.createElement('span');d.className='chip';d.textContent=nm;
+    let st;if(i===0)st=(ph>1||u>0)?'done':'cur';else if(ph>i)st='done';else if(ph===i&&u>0)st='cur';else st='';
+    if(ph>6)st='done';if(st)d.classList.add(st);ch.appendChild(d);});
+  drawNet();
+}
+
+/* ---------- Peta jaringan (gambaran umum) ---------- */
+const net=document.getElementById('net'),NV={};
+(function buildNet(){
+  const L=(t,x,y,anchor='middle')=>{const e=el('text',{x,y,'text-anchor':anchor,'font-size':12,'font-weight':600,fill:'#616e7c'},net);e.textContent=t;return e;};
+  NV.labels=[L('① Input 8×8',70,18),L('Kernel (bobot)',182,18),L('②③ Konvolusi + ReLU',318,18),L('④ Pooling',470,18),L('⑤ Flatten',610,18),L('⑥ Fully connected',770,18),L('⑦ Output + Softmax',990,18)];
+  const sub=(t,x,y)=>{el('text',{x,y,'text-anchor':'middle','font-size':10,fill:'#9aa5b1'},net).textContent=t;};
+  sub('64 neuron',70,32);sub('4 × 9 = 36 bobot',182,32);sub('4 × 64 = 256 neuron',318,32);sub('4 × 16 = 64 neuron',470,32);sub('64 neuron',610,32);sub('64 × 4 = 256 sambungan',770,32);sub('4 neuron',990,32);
+  const gStatic=el('g',{},net);NV.gDense=el('g',{},net);NV.gCells=el('g',{},net);NV.gHi=el('g',{},net);
+  // posisi
+  NV.inX=30;NV.inY=150;NV.inC=10;
+  NV.kX=170;NV.kY=[52,132,212,292].map(v=>v-12);NV.kC=8;
+  NV.mX=290;NV.mY=[44,124,204,284].map(v=>v);NV.mC=7;
+  NV.pX=450;NV.pY=[50,130,210,290];NV.pC=10;
+  NV.fX=610;NV.fY=i=>44+i*4.4+Math.floor(i/16)*8;
+  NV.oX=930;NV.oY=[95,160,225,290];
+  const ctr=(x,y,c,n)=>[x+c*n/2,y+c*n/2];
+  // sambungan statis
+  for(let k=0;k<4;k++){
+    el('line',{x1:NV.inX+80,y1:NV.inY+40,x2:NV.kX,y2:NV.kY[k]+12,stroke:'#d1d5db','stroke-width':1.5},gStatic);
+    el('line',{x1:NV.kX+24,y1:NV.kY[k]+12,x2:NV.mX,y2:NV.mY[k]+28,stroke:'#d1d5db','stroke-width':1.5},gStatic);
+    el('line',{x1:NV.mX+56,y1:NV.mY[k]+28,x2:NV.pX,y2:NV.pY[k]+20,stroke:'#d1d5db','stroke-width':1.5},gStatic);
+    for(let i=0;i<16;i++){const r=Math.floor(i/4),c=i%4;el('line',{x1:NV.pX+40,y1:NV.pY[k]+r*NV.pC+5,x2:NV.fX,y2:NV.fY(k*16+i),stroke:'#eef0f3','stroke-width':.7},gStatic);}
+  }
+  for(let i=0;i<64;i++)for(let o=0;o<4;o++)el('line',{x1:NV.fX,y1:NV.fY(i),x2:NV.oX,y2:NV.oY[o],stroke:'#eef0f3','stroke-width':.5},NV.gDense);
+  // sel
+  NV.in=[];for(let i=0;i<64;i++)NV.in.push(el('rect',{x:NV.inX+(i%8)*NV.inC,y:NV.inY+Math.floor(i/8)*NV.inC,width:NV.inC-1,height:NV.inC-1,fill:'#fff',stroke:'#e5e7eb','stroke-width':.5},NV.gCells));
+  NV.k=[];for(let k=0;k<4;k++){NV.k.push([]);for(let i=0;i<9;i++){const v=PIPE[k].k[Math.floor(i/3)][i%3];
+    NV.k[k].push(el('rect',{x:NV.kX+(i%3)*NV.kC,y:NV.kY[k]+Math.floor(i/3)*NV.kC,width:NV.kC-1,height:NV.kC-1,fill:v>0?'#3b82f6':'#f87171'},NV.gCells));}
+    el('text',{x:NV.kX+12,y:NV.kY[k]+36,'text-anchor':'middle','font-size':9,fill:'#9aa5b1'},NV.gCells).textContent=PIPE[k].icon;}
+  NV.m=[];for(let k=0;k<4;k++){NV.m.push([]);for(let i=0;i<64;i++)NV.m[k].push(el('rect',{x:NV.mX+(i%8)*NV.mC,y:NV.mY[k]+Math.floor(i/8)*NV.mC,width:NV.mC-1,height:NV.mC-1,fill:'#f3f4f6'},NV.gCells));}
+  NV.p=[];for(let k=0;k<4;k++){NV.p.push([]);for(let i=0;i<16;i++)NV.p[k].push(el('rect',{x:NV.pX+(i%4)*NV.pC,y:NV.pY[k]+Math.floor(i/4)*NV.pC,width:NV.pC-1,height:NV.pC-1,fill:'#f3f4f6'},NV.gCells));}
+  NV.f=[];for(let i=0;i<64;i++)NV.f.push(el('circle',{cx:NV.fX,cy:NV.fY(i),r:2,fill:'#e5e7eb',stroke:'#cbd2d9','stroke-width':.4},NV.gCells));
+  NV.o=[];NV.ot=[];NV.ob=[];NV.op=[];
+  KEYS.forEach((k,o)=>{NV.o.push(el('circle',{cx:NV.oX,cy:NV.oY[o],r:16,fill:'#fff',stroke:'#9aa5b1','stroke-width':1.5},NV.gCells));
+    const t=el('text',{x:NV.oX,y:NV.oY[o]+5,'text-anchor':'middle','font-size':14,'font-weight':700,fill:'#1f2933'},NV.gCells);t.textContent=k;NV.ot.push(t);
+    el('rect',{x:NV.oX+26,y:NV.oY[o]-7,width:120,height:14,rx:7,fill:'#eef1f4'},NV.gCells);
+    NV.ob.push(el('rect',{x:NV.oX+26,y:NV.oY[o]-7,width:0,height:14,rx:7,fill:'#9aa5b1'},NV.gCells));
+    const pt=el('text',{x:NV.oX+152,y:NV.oY[o]+4,'font-size':12,fill:'#374151'},NV.gCells);NV.op.push(pt);
+    el('text',{x:NV.oX+26,y:NV.oY[o]-11,'font-size':10,fill:'#9aa5b1'},NV.gCells).textContent=CLASS_NAMES[k];});
+})();
+function drawNet(){
+  const ph=sim.ph,u=sim.u,cu=u-1,hi=NV.gHi;hi.innerHTML='';
+  for(let i=0;i<64;i++)NV.in[i].setAttribute('fill',img[Math.floor(i/8)][i%8]?'#1f2933':'#fff');
+  for(let k=0;k<4;k++){for(let i=0;i<64;i++){const r=Math.floor(i/8),c=i%8;
+      NV.m[k][i].setAttribute('fill',done(1,k*64+i)?colorV(done(2,k)?C.rl[k][r][c]:C.raw[k][r][c],6):'#f3f4f6');}
+    for(let i=0;i<16;i++)NV.p[k][i].setAttribute('fill',done(3,k*16+i)?colorV(C.pl[k][Math.floor(i/4)][i%4],6):'#f3f4f6');}
+  for(let i=0;i<64;i++){const d=done(4,i);NV.f[i].setAttribute('fill',d?(C.vec[i]?colorV(C.vec[i],6):'#fff'):'#e5e7eb');NV.f[i].setAttribute('r',d&&C.vec[i]?2.6:2);}
+  const showP=done(6,0);
+  KEYS.forEach((k,o)=>{const pv=showP?C.pr[o]:0;NV.ob[o].setAttribute('width',(120*pv).toFixed(1));NV.ob[o].setAttribute('fill',showP&&o===C.best?'#2563eb':'#9aa5b1');
+    NV.op[o].textContent=showP?Math.round(pv*100)+'%':done(5,o)?'skor '+C.sc[o].toFixed(2).replace('.',','):'';
+    NV.o[o].setAttribute('fill',showP?`rgba(37,99,235,${(0.1+0.9*pv).toFixed(2)})`:done(5,o)?'#eef2ff':'#fff');
+    NV.ot[o].setAttribute('fill',showP&&pv>0.5?'#fff':'#1f2933');
+    NV.o[o].setAttribute('stroke',showP&&o===C.best?'#1d4ed8':'#9aa5b1');NV.o[o].setAttribute('stroke-width',showP&&o===C.best?3:1.5);});
+  // label aktif
+  let act=-1;
+  const O='#f59e0b',box=(x,y,w,h)=>el('rect',{x:x-1,y:y-1,width:w+1,height:h+1,fill:'none',stroke:O,'stroke-width':2.2,rx:1},hi),
+        ln=(x1,y1,x2,y2,w=2)=>el('line',{x1,y1,x2,y2,stroke:O,'stroke-width':w},hi);
+  if(C.empty){}
+  else if(ph===1&&u===0){act=0;box(NV.inX,NV.inY,80,80);}
+  else if(ph===1){act=2;const k=Math.floor(cu/64),i=cu%64,r=Math.floor(i/8),c=i%8;
+    const r0=Math.max(0,r-1),c0=Math.max(0,c-1),r1=Math.min(7,r+1),c1=Math.min(7,c+1);
+    const bx=NV.inX+c0*NV.inC,by=NV.inY+r0*NV.inC;box(bx,by,(c1-c0+1)*NV.inC-1,(r1-r0+1)*NV.inC-1);
+    box(NV.kX,NV.kY[k],24-1,24-1);
+    for(let a=r0;a<=r1;a++)for(let b=c0;b<=c1;b++)ln(NV.inX+b*NV.inC+4.5,NV.inY+a*NV.inC+4.5,NV.kX,NV.kY[k]+12,0.8);
+    const mx=NV.mX+c*NV.mC,my=NV.mY[k]+r*NV.mC;ln(NV.kX+24,NV.kY[k]+12,mx+3,my+3,2);box(mx,my,NV.mC-1,NV.mC-1);
+    NV.labels[1].setAttribute('fill','#b45309');}
+  else if(ph===2&&u===0){act=2;}
+  else if(ph===2){act=2;box(NV.mX,NV.mY[cu],56-1,56-1);
+    const t=el('text',{x:NV.mX+66,y:NV.mY[cu]+32,'font-size':11,'font-weight':700,fill:O},hi);t.textContent='ReLU';}
+  else if(ph===3&&u===0){act=3;}
+  else if(ph===3){act=3;const k=Math.floor(cu/16),i=cu%16,r=Math.floor(i/4),c=i%4;
+    const mx=NV.mX+2*c*NV.mC,my=NV.mY[k]+2*r*NV.mC;box(mx,my,2*NV.mC-1,2*NV.mC-1);
+    const px=NV.pX+c*NV.pC,py=NV.pY[k]+r*NV.pC;ln(mx+NV.mC,my+NV.mC,px+5,py+5);box(px,py,NV.pC-1,NV.pC-1);}
+  else if(ph===4&&u===0){act=4;}
+  else if(ph===4){act=4;const k=Math.floor(cu/16),i=cu%16,r=Math.floor(i/4),c=i%4;
+    const px=NV.pX+c*NV.pC,py=NV.pY[k]+r*NV.pC;box(px,py,NV.pC-1,NV.pC-1);ln(px+NV.pC,py+5,NV.fX,NV.fY(cu));
+    el('circle',{cx:NV.fX,cy:NV.fY(cu),r:4.5,fill:'none',stroke:O,'stroke-width':2},hi);}
+  else if(ph===5&&u===0){act=5;}
+  else if(ph===5){act=5;const o=cu,t=TEMPL[KEYS[o]];
+    for(let i=0;i<64;i++){if(!C.vec[i]&&!t[i])continue;const both=C.vec[i]>0&&t[i]>0;
+      el('line',{x1:NV.fX,y1:NV.fY(i),x2:NV.oX-16,y2:NV.oY[o],stroke:both?'#2563eb':'#fca5a5','stroke-width':both?1.4:.7,opacity:both?.85:.6},hi);}
+    el('circle',{cx:NV.oX,cy:NV.oY[o],r:20,fill:'none',stroke:O,'stroke-width':2.5},hi);
+    const tx=el('text',{x:NV.fX+20,y:354,'font-size':11,fill:'#1d4ed8'},hi);tx.textContent='garis biru = sambungan tempat pola gambar dan pola kelas sama-sama aktif';}
+  else if(ph>=6){act=6;}
+  NV.labels.forEach((l,i)=>{l.setAttribute('fill',i===act?'#2563eb':'#616e7c');});
+  NV.gDense.style.opacity=ph===5&&u>0?.35:1;
+}
+function onImageChange(){compute();resetSim();renderSim();updateLab();}
+function matPaint(id,vals,kind){const e=document.getElementById(id);e.innerHTML='';
+  vals.flat().forEach(v=>{const d=document.createElement('div');
+    if(kind==='px'){d.style.background=v?'#1f2933':'#fff';d.style.color=v?'#fff':'#9aa5b1';d.style.border='1px solid #d9dde2';d.textContent=v;}
+    else{const dv=KERNELS[selK].div;d.textContent=(kind==='k'||kind==='p')&&dv&&v!==0?`${Math.round(v*dv)}/${dv}`:numTxt(v);
+      d.style.background=v>0?'#dbeafe':v<0?'#fee2e2':'#f3f4f6';d.style.color=v>0?'#1d4ed8':v<0?'#b91c1c':'#6b7280';if(KERNELS[selK].div)d.style.fontSize='12px';}
+    e.appendChild(d);});}
+function updateLab(){
+  const K=KERNELS[selK],raw=convRaw(img,K),rl=relu(raw);
+  const mx=Math.max(1e-9,...raw.flat().map(Math.abs));
+  paintInput('labIn');paintMap('labOut',raw,mx,true);paintMap('labRelu',rl,mx,true);
+  const r=Math.floor(pos/N),c=pos%N;
+  const lin=document.getElementById('labIn').children;[...lin].forEach(d=>d.classList.remove('hl'));
+  const patch=[],kv=[],prod=[];
+  for(let i=-1;i<=1;i++){patch.push([]);kv.push([]);prod.push([]);for(let j=-1;j<=1;j++){const rr=r+i,cc=c+j,inb=rr>=0&&rr<N&&cc>=0&&cc<N;
+    const p=inb?img[rr][cc]:0;if(inb)lin[rr*N+cc].classList.add('hl');patch[i+1].push(p);kv[i+1].push(kval(K,i+1,j+1));prod[i+1].push(p*kval(K,i+1,j+1));}}
+  ['labOut','labRelu'].forEach(id=>{const g=document.getElementById(id).children;[...g].forEach(d=>d.classList.remove('cur'));g[pos].classList.add('cur');});
+  matPaint('cPatch',patch,'px');matPaint('cKern',kv,'k');matPaint('cProd',prod,'p');
+  const sum=prod.flat().reduce((a,b)=>a+b,0);
+  const dv=K.div;
+  const terms=prod.flat().filter(v=>v!==0).map(v=>dv?`${Math.round(v*dv)}/${dv}`:numTxt(v));
+  const sumTxt=dv?`${Math.round(sum*dv)}/${dv} ≈ ${(Math.round(sum*100)/100).toFixed(2)}`:numTxt(sum);
+  document.getElementById('cSum').innerHTML=`Jumlah semua hasil perkalian = ${terms.length?terms.join(' + ').replace(/\+ −/g,'− '):'0'} = <b>${sumTxt}</b>`+
+    (sum<0?` &nbsp;→ negatif (tidak cocok), setelah ReLU menjadi <b>0</b>`:'')+
+    ` &nbsp;→ ditulis di feature map baris ${r+1}, kolom ${c+1} (kotak oranye).`;
+  document.getElementById('posTxt').textContent=`baris ${r+1}, kolom ${c+1}`;
+  document.getElementById('kDesc').innerHTML=`<b>${K.name}:</b> ${K.desc}`;
+  matPaint('labK',K.k.map(row=>row.map(v=>v/(K.div||1))),'k');
+  document.querySelectorAll('#klist button').forEach((b,i)=>b.classList.toggle('on',i===selK));
+}
+const kl=document.getElementById('klist');
+KERNELS.forEach((K,i)=>{const b=document.createElement('button');b.innerHTML=`${K.icon} ${K.name}<small>${i<4?'dipakai di alur CNN (A)':'contoh kernel lain'}</small>`;
+  b.onclick=()=>{selK=i;updateLab();};kl.appendChild(b);});
+function stopPlay(){if(playT){clearInterval(playT);playT=null;}document.getElementById('bPlay').textContent='▶ Putar';}
+document.getElementById('bPrev').onclick=()=>{stopPlay();pos=(pos+N*N-1)%(N*N);updateLab();};
+document.getElementById('bNext').onclick=()=>{stopPlay();pos=(pos+1)%(N*N);updateLab();};
+document.getElementById('bPlay').onclick=()=>{if(playT){stopPlay();return;}document.getElementById('bPlay').textContent='■ Berhenti';
+  playT=setInterval(()=>{pos=(pos+1)%(N*N);updateLab();if(pos===N*N-1)stopPlay();},450);};
+document.querySelectorAll('[data-p]').forEach(b=>b.onclick=()=>{img=fromPreset(b.dataset.p);onImageChange();});
+document.getElementById('btnClear').onclick=()=>{img=Array.from({length:N},()=>Array(N).fill(0));onImageChange();};
+document.getElementById('btnNums').onclick=e=>{showNums=!showNums;e.target.classList.toggle('on',showNums);renderSim();updateLab();};
+(()=>{const g=document.getElementById('inGrid');let drawing=false,val=1;
+  const at=ev=>{const t=document.elementFromPoint(ev.clientX,ev.clientY);if(!t||t.parentNode!==g)return null;const i=[...g.children].indexOf(t);return[Math.floor(i/N),i%N];};
+  g.addEventListener('pointerdown',ev=>{const rc=at(ev);if(!rc)return;drawing=true;val=img[rc[0]][rc[1]]?0:1;img[rc[0]][rc[1]]=val;onImageChange();ev.preventDefault();});
+  window.addEventListener('pointermove',ev=>{if(!drawing)return;const rc=at(ev);if(rc&&img[rc[0]][rc[1]]!==val){img[rc[0]][rc[1]]=val;onImageChange();}});
+  window.addEventListener('pointerup',()=>drawing=false);})();
+img=fromPreset('7');pos=1*N+3;onImageChange();
+</script>
+</body>
+</html>
